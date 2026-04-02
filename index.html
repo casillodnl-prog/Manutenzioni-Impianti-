@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manutenzione Impianti - Birra & Caffè</title>
+<style>
+  :root {
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --amber-dark: #633806;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --teal-dark: #04342C;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+    --gray-bg: #F7F6F2;
+    --gray-border: #D3D1C7;
+    --gray-text: #5F5E5A;
+    --text: #2C2C2A;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray-bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--text); color: #fff; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 10px; }
+  .header-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .role-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.15); color: #fff; cursor: pointer; border: none; }
+  .role-badge.active { background: var(--amber); }
+
+  /* TABS */
+  .tabs { display: flex; background: var(--white); border-bottom: 1px solid var(--gray-border); padding: 0 16px; overflow-x: auto; }
+  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--gray-text); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  /* STATS BAR */
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--gray-border); border-bottom: 1px solid var(--gray-border); }
+  .stat-card { background: var(--white); padding: 12px 16px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-text); }
+  .stat-value { font-size: 22px; font-weight: 600; line-height: 1.2; }
+  .stat-value.ok { color: var(--green); }
+  .stat-value.warn { color: var(--amber); }
+  .stat-value.danger { color: var(--red); }
+
+  /* FILTERS */
+  .filters { background: var(--white); padding: 10px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--gray-border); }
+  .filters input, .filters select { height: 34px; border: 1px solid var(--gray-border); border-radius: 6px; padding: 0 10px; font-size: 13px; background: var(--gray-bg); color: var(--text); }
+  .filters input { min-width: 200px; flex: 1; }
+  .filters select { min-width: 140px; }
+  .btn-add { height: 34px; padding: 0 16px; background: var(--text); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn-add:hover { background: #444; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--white); position: sticky; top: 56px; z-index: 10; }
+  th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-text); border-bottom: 1px solid var(--gray-border); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0ede7; vertical-align: middle; }
+  tr:hover td { background: #faf9f6; }
+  tr.row-danger td { background: #fff5f5; }
+  tr.row-warn td { background: #fffbf0; }
+  tr.row-inactive td { opacity: 0.55; }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-ok { background: var(--green-light); color: var(--green); }
+  .badge-warn { background: var(--amber-light); color: var(--amber-dark); }
+  .badge-danger { background: var(--red-light); color: var(--red); }
+  .badge-info { background: #E6F1FB; color: #185FA5; }
+  .badge-gray { background: #f0ede7; color: var(--gray-text); }
+
+  /* PROPRIETA TAGS */
+  .prop-casillo { background: #E1F5EE; color: #085041; }
+  .prop-pascucci { background: #FAEEDA; color: #633806; }
+  .prop-heineken { background: #EAF3DE; color: #27500A; }
+  .prop-cliente { background: #E6F1FB; color: #0C447C; }
+
+  .vie-circle { width: 26px; height: 26px; border-radius: 50%; background: var(--text); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+
+  /* ACTIONS */
+  .btn-log { padding: 4px 12px; background: var(--amber); color: #fff; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .btn-log:hover { background: var(--amber-dark); }
+  .btn-detail { padding: 4px 10px; background: transparent; color: var(--gray-text); border: 1px solid var(--gray-border); border-radius: 5px; font-size: 12px; cursor: pointer; }
+  .btn-detail:hover { background: var(--gray-bg); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 12px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--gray-border); display: flex; align-items: flex-start; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-sub { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-text); line-height: 1; padding: 2px 6px; }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  .field-group { margin-bottom: 16px; }
+  .field-label { font-size: 12px; font-weight: 500; color: var(--gray-text); margin-bottom: 4px; }
+  .field-input { width: 100%; height: 36px; border: 1px solid var(--gray-border); border-radius: 6px; padding: 0 10px; font-size: 13px; }
+  .field-textarea { width: 100%; border: 1px solid var(--gray-border); border-radius: 6px; padding: 8px 10px; font-size: 13px; min-height: 80px; resize: vertical; font-family: inherit; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* HISTORY LIST */
+  .history-list { list-style: none; }
+  .history-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ede7; }
+  .history-item:last-child { border-bottom: none; }
+  .history-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .history-dot.special { background: var(--amber); }
+  .history-date { font-size: 13px; font-weight: 500; min-width: 90px; }
+  .history-note { font-size: 12px; color: var(--gray-text); flex: 1; }
+  .history-del { background: none; border: none; color: var(--gray-border); cursor: pointer; font-size: 16px; padding: 0 4px; display: none; }
+  .history-item:hover .history-del { display: block; color: var(--red); }
+
+  /* DASHBOARD */
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; padding: 16px; }
+  .dash-card { background: var(--white); border-radius: 10px; border: 1px solid var(--gray-border); padding: 16px 20px; }
+  .dash-card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-text); margin-bottom: 12px; }
+  .dash-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0ede7; font-size: 13px; }
+  .dash-row:last-child { border-bottom: none; }
+  .dash-num { font-weight: 600; font-size: 14px; }
+
+  /* MOBILE TWEAKS */
+  @media (max-width: 768px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .header-title span.long { display: none; }
+    .filters { flex-direction: column; }
+    .filters input, .filters select { width: 100%; min-width: unset; font-size: 16px; height: 44px; }
+    .hide-mobile { display: none; }
+    .field-grid { grid-template-columns: 1fr; }
+    th.hide-mobile, td.hide-mobile { display: none; }
+    td { padding: 12px 10px; }
+    th { padding: 10px; }
+    .btn-log, .btn-detail { padding: 8px 14px; font-size: 13px; min-height: 36px; }
+    .modal { border-radius: 16px 16px 0 0; max-height: 92vh; margin-top: auto; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal-body { padding: 16px 20px; }
+    .modal-header { padding: 16px 20px 12px; }
+    .modal-footer { padding: 12px 20px; }
+    .field-input, .field-textarea { font-size: 16px; }
+    .btn-save, .btn-cancel { padding: 12px 20px; font-size: 14px; }
+    .history-del { display: block; color: var(--gray-border); }
+    tr td { font-size: 13px; }
+    .badge { font-size: 11px; }
+  }
+
+  /* ADD RECORD MODAL BUTTON */
+  .fab { display: none; }
+  @media (max-width: 768px) {
+    .fab { display: flex; align-items: center; justify-content: center; position: fixed; bottom: 24px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--text); color: #fff; font-size: 26px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); cursor: pointer; z-index: 50; }
+    .btn-add { display: none; }
+  }
+
+  /* SCADENZA HIGHLIGHT */
+  .scad { font-weight: 600; }
+  .scad-ok { color: var(--green); }
+  .scad-warn { color: var(--amber); }
+  .scad-danger { color: var(--red); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-text); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+  .section-head { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.06em; background: var(--gray-bg); border-bottom: 1px solid var(--gray-border); }
+
+  .btn-save { padding: 8px 20px; background: var(--text); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-cancel { padding: 8px 16px; background: transparent; color: var(--gray-text); border: 1px solid var(--gray-border); border-radius: 6px; font-size: 13px; cursor: pointer; }
+
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  .show-mobile-only { display: none; }
+  @media (max-width: 768px) { .show-mobile-only { display: block; } }
+
+  /* TABLET modal - centered, not bottom sheet */
+  @media (min-width: 769px) {
+    .modal { margin: auto; border-radius: 12px; }
+    .modal-overlay { align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <div class="dot"></div>
+    <span>Manutenzione Impianti</span>
+    <span class="long" style="font-weight:400;opacity:0.6;">Birra & Caffè</span>
+  </div>
+  <div class="header-right">
+    <button class="role-badge active" id="roleBtn" onclick="toggleRole()">Tecnico</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('impianti')">Tutti gli Impianti</div>
+  <div class="tab" onclick="switchTab('scadenze')">Scadenze</div>
+  <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-card"><div class="stat-label">Totale Impianti</div><div class="stat-value" id="statTotal">–</div></div>
+  <div class="stat-card"><div class="stat-label">Regolari</div><div class="stat-value ok" id="statOk">–</div></div>
+  <div class="stat-card"><div class="stat-label">Attenzione</div><div class="stat-value warn" id="statWarn">–</div></div>
+  <div class="stat-card"><div class="stat-label">Scaduti</div><div class="stat-value danger" id="statDanger">–</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters" id="filtersRow">
+  <input type="search" id="searchInput" placeholder="Cerca esercizio, cliente, località..." oninput="renderTable()">
+  <select id="filterLoc" onchange="renderTable()">
+    <option value="">Tutte le località</option>
+  </select>
+  <select id="filterProp" onchange="renderTable()">
+    <option value="">Tutte le proprietà</option>
+    <option value="casillo">Casillo</option>
+    <option value="pascucci">Pascucci</option>
+    <option value="heineken">Heineken</option>
+    <option value="cliente">Cliente</option>
+  </select>
+  <select id="filterStatus" onchange="renderTable()">
+    <option value="">Attivi</option>
+    <option value="ok">Regolari</option>
+    <option value="warn">Attenzione (>45gg)</option>
+    <option value="danger">Scaduti (>90gg)</option>
+    <option value="inactive">Solo Smontati/Inattivi</option>
+  </select>
+  <button id="btnToggleSmontati" onclick="toggleSmontati()" style="height:44px;padding:0 14px;background:var(--gray-bg);color:var(--gray-text);border:1px solid var(--gray-border);border-radius:6px;font-size:13px;cursor:pointer;white-space:nowrap;min-height:44px">Mostra smontati</button>
+  <button class="btn-add" onclick="openAddModal()">+ Nuovo Impianto</button>
+</div>
+
+<!-- MAIN TABLE -->
+<div id="tabImpianti">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Cod.</th>
+          <th>Esercizio</th>
+          <th class="hide-mobile">Cliente</th>
+          <th class="hide-mobile">Località</th>
+          <th class="hide-mobile">VIE</th>
+          <th class="hide-mobile">Proprietà</th>
+          <th>Ultimo intervento</th>
+          <th>Stato</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="icon">🔍</div>
+      <p>Nessun impianto trovato</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCADENZE VIEW -->
+<div id="tabScadenze" style="display:none">
+  <div class="section-head" style="background:#fff5f5;color:#a32d2d">SCADUTI – Oltre 90 giorni</div>
+  <div class="table-wrap"><table><thead><tr><th>Cod.</th><th>Esercizio</th><th class="hide-mobile">Località</th><th>Ultimo intervento</th><th>Giorni</th><th></th></tr></thead><tbody id="tbScaduti"></tbody></table></div>
+  <div class="section-head" style="background:#fffbf0;color:#633806">ATTENZIONE – 45-90 giorni</div>
+  <div class="table-wrap"><table><thead><tr><th>Cod.</th><th>Esercizio</th><th class="hide-mobile">Località</th><th>Ultimo intervento</th><th>Giorni</th><th></th></tr></thead><tbody id="tbAttenz"></tbody></table></div>
+  <div class="section-head" style="background:#eaf3de;color:#27500A">REGOLARI – Meno di 45 giorni</div>
+  <div class="table-wrap"><table><thead><tr><th>Cod.</th><th>Esercizio</th><th class="hide-mobile">Località</th><th>Ultimo intervento</th><th>Giorni</th><th></th></tr></thead><tbody id="tbOk"></tbody></table></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tabDashboard" style="display:none">
+  <div class="dash-grid" id="dashGrid"></div>
+</div>
+
+<!-- FAB mobile -->
+<button class="fab" onclick="openAddModal()">+</button>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detailTitle">–</div>
+        <div class="modal-sub" id="detailSub">–</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('detailModal')">Chiudi</button>
+      <button class="btn-save" id="detailLogBtn" onclick="logFromDetail()">Registra intervento</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG MODAL -->
+<div class="modal-overlay" id="logModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="logTitle">Registra intervento</div>
+        <div class="modal-sub" id="logSub">–</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('logModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field-label">Data intervento</div>
+        <input type="date" class="field-input" id="logDate">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Note / osservazioni</div>
+        <textarea class="field-textarea" id="logNote" placeholder="Es. Pulizia completa, sostituzione filtro, litri contatore..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('logModal')">Annulla</button>
+      <button class="btn-save" onclick="saveLog()">Salva intervento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title">Nuovo Impianto</div></div>
+      <button class="modal-close" onclick="closeModal('addModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-grid">
+        <div class="field-group">
+          <div class="field-label">Codice</div>
+          <input type="text" class="field-input" id="addCod" placeholder="Es. 1234">
+        </div>
+        <div class="field-group">
+          <div class="field-label">VIE (N° vie birra)</div>
+          <input type="number" class="field-input" id="addVie" placeholder="Es. 4" min="1">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Nome Esercizio</div>
+        <input type="text" class="field-input" id="addEsercizio" placeholder="Es. BAR CENTRALE">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Cliente / Titolare</div>
+        <input type="text" class="field-input" id="addCliente" placeholder="Es. ROSSI MARIO">
+      </div>
+      <div class="field-grid">
+        <div class="field-group">
+          <div class="field-label">Località</div>
+          <input type="text" class="field-input" id="addLocalita" placeholder="Es. EBOLI">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Posizione (km)</div>
+          <input type="number" class="field-input" id="addPosizione" placeholder="Es. 60">
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field-group">
+          <div class="field-label">Proprietà impianto</div>
+          <select class="field-input" id="addProprieta">
+            <option value="casillo">Casillo</option>
+            <option value="pascucci-casillo">Pascucci-Casillo</option>
+            <option value="heineken">Heineken</option>
+            <option value="cliente">Cliente</option>
+            <option value="di proprietà">Di proprietà</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Giorno chiusura</div>
+          <input type="text" class="field-input" id="addGg" placeholder="Es. lunedì">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Note</div>
+        <textarea class="field-textarea" id="addNote" placeholder="Note aggiuntive sull'impianto..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('addModal')">Annulla</button>
+      <button class="btn-save" onclick="saveNew()">Aggiungi impianto</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'impianti_v2';
+const ROLE_KEY = 'impianti_role';
+
+const RAW_DATA = [{"cod":"5289","esercizio":"JAMM A DU CONO","cliente":"di LA FENICE SRLS","posizione":"20","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"casillo","vie":"1","note":"","interventi":["2023-04-26","2023-09-21","2023-12-15","2024-01-04","2024-03-09","2024-04-18","2024-05-30","2024-11-28","2025-01-27","2025-03-27","2025-05-06","2025-06-19","2025-08-30","2025-10-18","2026-01-09"]},{"cod":"2580","esercizio":"LOCANDA SAN CIPRIANO","cliente":"GIORDANO ANTONIO","posizione":"20","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"casillo","vie":"3","note":"","interventi":["2023-04-11","2023-05-11","2023-07-05","2023-09-29","2024-01-04","2024-02-05","2024-03-09","2024-04-18","2024-06-01","2024-11-28","2025-01-28","2025-03-12","2025-05-06","2025-06-19","2025-08-20","2025-10-02","2026-01-10"]},{"cod":"2581","esercizio":"LOCANDA SAN CIPRIANO","cliente":"GIORDANO ANTONIO","posizione":"20","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"casillo","vie":"8","note":"","interventi":["2023-05-05","spento","chiuso","chiuso","smontato","smontato","smontato","smontato","2025-05-06"]},{"cod":"2582","esercizio":"LOCANDA SAN CIPRIANO","cliente":"GIORDANO ANTONIO","posizione":"20","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-07-05","2024-01-18","2024-03-09","2024-04-18","SMONTATO","2025-05-06"]},{"cod":"2580","esercizio":"LOCANDA SAN CIPRIANO","cliente":"GIORDANO ANTONIO (ROULOTTE)","posizione":"","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"casillo","vie":"2+PIST.","note":"","interventi":["2025-03-07","2025-05-06","2025-06-19","2025-08-20","2025-10-02","spento"]},{"cod":"4572","esercizio":"AL FORNO DI NONNO PIETRO","cliente":"FABIO ANTONIO","posizione":"","localita":"ATENA LUCANA","gg_chiusura":"","proprieta":"pasucci-casillo","vie":"","note":"sost.Filtro caffe a 2200 lt.","interventi":["2024-11-28","2025-02-20","avv. Lui","avv. Lui","2025-06-05","avv.lui","2025-09-18","lt 1438","avv. Lui"]},{"cod":"4985","esercizio":"PIZZERIA MAVI'","cliente":"FORNINO MARIO","posizione":"90","localita":"BELLOSGUARDO","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["chiuso","2024-03-12","SMONTATO","SMONTATO"]},{"cod":"4217","esercizio":"PIZZERIA TERRA MIA","cliente":"PALADINO ANGELO","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"heineken","vie":"4","note":"","interventi":["2023-06-22","smontato"]},{"cod":"6194","esercizio":"TENUTA 38 SRL","cliente":"TENUTA 38 SRL","posizione":"","localita":"ALTAVILLA SILENTINA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2026-01-22"]},{"cod":"3387","esercizio":"OFF LIMITS","cliente":"BOVINO COSTANTINO","posizione":"","localita":"BALVANO","gg_chiusura":"lun.-mar-mer.","proprieta":"casillo","vie":"4","note":"","interventi":["2024-12-06","2025-01-27","2025-03-14","Spento","2025-06-12","2025-08-07","2025-09-16","2025-12-19","2026-01-23"]},{"cod":"3244","esercizio":"LA TANA DEL LUPO","cliente":"LUPOVAL SRL","posizione":"40","localita":"CAGGIANO","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-09","2023-06-24","2023-09-14","chiuso","2024-01-04","2024-02-16","2024-04-09","2024-05-30","2024-12-05","2025-01-20","2025-03-12","2025-04-17","2025-06-05","2025-08-07","2025-10-03","2025-11-06","2026-01-09"]},{"cod":"2516","esercizio":"PUB MAXIMUS","cliente":"LUPO MASSIMO","posizione":"40","localita":"CAGGIANO","gg_chiusura":"aperto fine sett.","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-09","2023-07-06","2023-09-14","2023-10-28","2024-01-04","2024-02-16","2024-04-09","16/052024","2024-12-06","chiuso","2025-02-28","2025-04-17","2025-06-05","2025-06-05","da smont","2025-10-07"]},{"cod":"4129","esercizio":"AGRIT.I 2 BOSCHI","cliente":"MORRONE FRANCESCANTONIO","posizione":"40","localita":"CAGGIANO","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-07","2023-05-09","2023-06-26","2023-09-02","2023-10-28","2024-01-04","2024-02-16","2024-04-09","2024-05-30","SMONTATO"]},{"cod":"2168","esercizio":"LALTROLATO","cliente":"ISOLDI ANTONIO","posizione":"40","localita":"CAGGIANO","gg_chiusura":"","proprieta":"pasucci-casillo","vie":"CAFFE'","note":"12/03/25 1212 lt   24/04/2023 filtro","interventi":["2023-04-24","2023-09-19","2023-10-20","AVV LUI","AVV LUI","2024-12-10","2025-01-17","2025-03-12","avv. Lui","2025-06-05","2025-08-07","avv lui","avv. Lui"]},{"cod":"2168","esercizio":"SALAGIOCHI ISOLDI","cliente":"ISOLDI ANTONIO","posizione":"40","localita":"CAGGIANO","gg_chiusura":"","proprieta":"casillo","vie":"","note":"STAGIONALE","interventi":["spento","2023-09-19","2023-10-20","AVV LUI","AVV LUI","AVV LUI","stagionale","avv. Lui","2025-06-05","2025-08-07","avv lui","spento"]},{"cod":"4121","esercizio":"UBAR","cliente":"SQUARE WORLD SRL","posizione":"30","localita":"SANT'ARSENIO","gg_chiusura":"","proprieta":"","vie":"","note":"","interventi":["DA SMONTARE","smontato"]},{"cod":"4713","esercizio":"B29 CHIOSCO","cliente":"","posizione":"","localita":"SANT'ARSENIO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-07-04","smontato"]},{"cod":"4934","esercizio":"AGRIT.SANT'ANGELO","cliente":"GRANITO CARMELINA","posizione":"50","localita":"CAMPAGNA","gg_chiusura":"","proprieta":"","vie":"3","note":"","interventi":["2023-04-24","2023-07-03","chiuso","chiuso","2024-01-16","2024-01-17","2024-04-11","2024-06-17","2024-11-26","2025-01-23","2025-03-13","2025-04-18","2025-06-18","2025-08-26","2025-10-14","2025-11-28","2026-01-22"]},{"cod":"4904","esercizio":"LA CASINA","cliente":"di CIOFFI ANDREA","posizione":"50","localita":"CAMPAGNA","gg_chiusura":"","proprieta":"di proprietà","vie":"","note":"","interventi":["2023-04-08","2023-05-11","2023-07-03","2023-09-12","2023-10-20","2023-12-22","2024-01-17","2024-04-11","2024-06-17","2024-11-26","2025-01-23","2025-03-13","2025-04-18","2025-06-18","2025-08-26","2025-10-14","2025-11-28","2026-01-22"]},{"cod":"5324","esercizio":"A CHIAZZA","cliente":"BUSILLO MICOL","posizione":"50","localita":"CAMPAGNA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["chiuso","2023-09-12","2023-10-20","2024-01-16","2024-04-11","2024-06-19","2024-06-19","2025-11-28","2026-01-22"]},{"cod":"5423","esercizio":"AREA 36","cliente":"FASANO MAURO","posizione":"","localita":"CAMPAGNA","gg_chiusura":"","proprieta":"casillo","vie":"5","note":"","interventi":["2024-01-17","2024-02-29","2024-04-11","2024-06-17","2024-06-17","2025-11-28","2026-01-22"]},{"cod":"5068","esercizio":"TENUTA RIZZO","cliente":"SOC.AGR.TENUTA RIZZO","posizione":"50","localita":"CAMPAGNA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-08","2023-05-11","2023-07-03","2023-09-12","2023-10-20","2023-12-22","2024-02-20","2024-04-11","2024-06-17","2024-11-26","2025-01-23","2025-03-13","2025-04-18","2025-06-18","2025-08-26","2025-10-14","2025-11-28","2026-01-22"]},{"cod":"3906","esercizio":"L'OASI DEL GUSTO","cliente":"LOVISI NICOLA","posizione":"","localita":"CASALETTO SPARTANO","gg_chiusura":"","proprieta":"","vie":"","note":"","interventi":["2024-01-19","2024-03-08","2024-04-05","2024-06-11","2024-12-10","2025-01-24","2025-03-21","2025-05-09","2025-06-13","2025-08-27","2025-10-16","2026-01-21"]},{"cod":"5613","esercizio":"TEMPORARY BAR","cliente":"NAPOLI C.","posizione":"","localita":"CASALETTO SPARTANO","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-10-23","2023-11-10","2024-01-19","2024-03-08","2024-04-05","2024-06-11","2024-12-10","2025-01-24","2025-03-21","2025-05-09","2025-06-13","2025-08-27","2025-10-16","2026-01-21"]},{"cod":"2869","esercizio":"AGRIT.LA BOTTE","cliente":"LA BOTTE SRLS","posizione":"130","localita":"CASELLE IN PITTARI","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-03-28","2023-05-16","2023-06-27","2024-03-08","2024-04-16","2024-06-11","2024-12-17","2025-01-29","2025-03-20","2025-05-09","RIFIUTATO","2025-08-27","2025-10-17","2026-01-08"]},{"cod":"2459","esercizio":"BAR LA SOSTA","cliente":"LA SOSTA SRL","posizione":"130","localita":"CASELLE IN PITTARI","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-03-28","2023-05-16","2023-06-27","2023-11-10","2024-03-08","2024-04-16","2024-06-11","2024-12-10","2025-01-29","2025-03-20","2025-06-23","2025-08-27","2025-10-17","2026-01-21"]},{"cod":"5777","esercizio":"VRACERIA","cliente":"L & G SRL","posizione":"","localita":"CASELLE IN PITTARI","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2024-12-11","2025-01-29","2025-03-21","2025-08-07","2025-10-16","2026-01-21"]},{"cod":"2435","esercizio":"BAR BLU NOTTE","cliente":"MARRUSO COSIMO","posizione":"90","localita":"CASTEL SAN LORENZO","gg_chiusura":"mai","proprieta":"pascucci-casillo","vie":"CAFFE'","note":"27/01/25 litri 797","interventi":["2023-05-17","2023-11-03","2024-03-12","2024-04-04","2024-05-23","2024-12-05","2025-01-27","avv. Lui","avv. Lui","2025-07-24","avv lui","avv lui"]},{"cod":"4662","esercizio":"JOKER BAR","cliente":"CILENTE GIANFRANCO CARMINE","posizione":"","localita":"CASTEL SAN LORENZO","gg_chiusura":"","proprieta":"pascucci-casillo","vie":"CAFFE'","note":"","interventi":["2025-07-24","avv lui","avv lui"]},{"cod":"3532","esercizio":"PIZZERIA MIRYU","cliente":"STROLLO TONI","posizione":"50","localita":"COLLIANO","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-08","2023-05-11","chiuso","2023-09-12","2023-11-04","2024-01-16","2024-02-29","2024-04-11","2024-06-17","2024-11-29","2025-01-22","2025-03-13","2025-04-23","2025-06-18","2025-09-10","2025-10-21","rifiutato"]},{"cod":"6202","esercizio":"TRE SRLS","cliente":"TRE SRLS","posizione":"","localita":"CONTURSI TERME","gg_chiusura":"","proprieta":"casillo","vie":"3","note":"","interventi":["2026-01-23"]},{"cod":"4068","esercizio":"DIVINO CAFFE'","cliente":"D'AMORE ROSA","posizione":"60","localita":"EBOLI","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-05-11","2023-06-24","2023-07-03","2023-09-12","2023-10-20","2023-12-22","2024-01-17","2024-02-29","2024-04-11","2024-05-23","2024-11-26","2025-01-23","2025-03-13","2025-04-18","2025-06-18","2025-08-26","2025-10-14","2025-11-28","2026-01-22"]},{"cod":"5249","esercizio":"RISTORANTE DOGANA","cliente":"RI. FOR. SAS di FORLANO IDA & C.","posizione":"","localita":"EBOLI","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2024-11-29","smontato"]},{"cod":"5262","esercizio":"ANTICHE FORNACI SRL","cliente":"ANTICHE FORNACI SRL","posizione":"60","localita":"EBOLI","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-07-03","2023-09-12","chiuso","SPENTO","SPENTO","SPENTO","spento"]},{"cod":"5243","esercizio":"PUB ROLLING STEAKS HOUSE","cliente":"DEB SRLS","posizione":"160","localita":"MARATEA","gg_chiusura":"","proprieta":"casillo","vie":"5","note":"STAGIONALE","interventi":["2023-03-28","2023-05-16","2023-06-28","2023-09-11","chiuso","spento","2024-04-05","2024-05-31","spento","stagionale","2025-04-11","2025-05-30","2025-08-07","2025-09-19","2025-11-07","2025-12-06"]},{"cod":"3565","esercizio":"CAFFE' RETRO'","cliente":"CAFFE' RETRO' SAS DI MELE PIERPAOLO","posizione":"50","localita":"OLIVETO CITRA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2023-07-03","smontato"]},{"cod":"4811","esercizio":"A FUOCO LENTO","cliente":"IL LUCANO DI CARLUCCIO MATTEO","posizione":"160","localita":"MARATEA","gg_chiusura":"","proprieta":"casillo","vie":"3","note":"","interventi":["2023-03-28","2023-05-16","2023-06-28","da smontare","smontato","SMONTATO","SMONTATO"]},{"cod":"4631","esercizio":"GENTLMENT COFFE","cliente":"DE.FI.SRLS","posizione":"60","localita":"BELLIZZI","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["????","2023-07-03","smontato"]},{"cod":"4422","esercizio":"PARADA DEL MAR","cliente":"di ONIAL SRLS","posizione":"160","localita":"MARATEA","gg_chiusura":"","proprieta":"casillo","vie":"3","note":"","interventi":["2023-06-28","2023-09-11","stagionale","AVV LUI","AVV LUI","AVV LUI"]},{"cod":"3293","esercizio":"PIZZERIA LA BUSSOLA","cliente":"PAOLINO GIANCARLO","posizione":"160","localita":"MARATEA","gg_chiusura":"","proprieta":"CLIENTE","vie":"3","note":"","interventi":["2023-05-16","2023-06-28","chiuso","2024-02-07","2024-03-07","2024-04-05","2024-05-15","2024-12-11","stagionale","2025-04-02","AVV. LUI","2025-08-07","2025-09-19","2025-11-07","2025-12-06"]},{"cod":"6047","esercizio":"LIDO TARZAN BEACH","cliente":"DE FILIPPO ROCCO","posizione":"","localita":"MARATEA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"","interventi":["2025-08-07","smontato","2025-09-19"]},{"cod":"4081","esercizio":"ESSEDI DI CASCONE DANIELA SAS","cliente":"ESSEDI DI CASCONE DANIELA SAS","posizione":"180","localita":"MARINA DI CAMEROTA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"STAGIONALE","interventi":["2023-04-27","2024-05-24","2024-05-24","spento","stagionale","2025-05-30","2025-07-09","spento"]},{"cod":"5319","esercizio":"CASTELLO VASSALLO","cliente":"CASTELLO VASSALLO SRLS","posizione":"70","localita":"STELLA CILENTO","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["smontato"]},{"cod":"480","esercizio":"BAR RIST. REZZO","cliente":"IL CASALE SNC","posizione":"101","localita":"MONTE SAN GIACOMO","gg_chiusura":"martedì","proprieta":"casillo","vie":"","note":"","interventi":["2023-11-20","2024-01-18","2024-03-01","2024-04-09","2024-04-09","2024-12-07","2025-01-23","2025-03-13","2025-04-23","2025-06-20","2025-08-30","2025-10-16","2026-01-26","2026-01-26"]},{"cod":"4768A","esercizio":"KASHIMA SOC.COOP.","cliente":"KASHIMA MONTECORVINO","posizione":"60","localita":"MONTECORVINO R.","gg_chiusura":"","proprieta":"pasucci-casillo","vie":"CAFFE'","note":"","interventi":["2023-07-01","2023-09-12","2023-10-20","AVV LUI","AVV LUI"]},{"cod":"3744","esercizio":"BAR O CLOCK","cliente":"HAPPY HOURS SAS","posizione":"120","localita":"MONTESANO","gg_chiusura":"mai","proprieta":"Peroni/smarrito","vie":"1","note":"","interventi":["2023-03-28","2023-05-09","2023-07-06","2023-09-21","SPENTO","SPENTO"]},{"cod":"5461","esercizio":"PIZZERIA DONNA ROSA","cliente":"PIZZERIA DONNA ROSA SRL","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-27","2023-05-23","2023-07-06","2023-09-21","2023-11-20","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-24","2025-03-20","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"4997","esercizio":"IL TEMPIO DELLE PIZZE","cliente":"GUIDA NICOLA","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-13","2023-05-23","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-06-06","2024-12-04","2025-01-23","2025-03-20","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"4720","esercizio":"VINERIA AL CASTELLO","cliente":"BAFFA ROSALBINO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-13","2023-05-23","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-23","2025-03-20","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"4814","esercizio":"RISTORANTE VITO","cliente":"BOFFA VITO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-13","2023-05-23","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-23","2025-03-20","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"4848","esercizio":"AGRIT.NONNA FILOMENA","cliente":"FILOMENA URCIUOLI","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-04-21","2023-07-04","2023-09-21","2023-10-26","chiuso","2024-02-05","2024-03-14","2024-04-16","2024-06-06","chiuso","2024-12-04","2025-01-24","2025-03-21","2025-04-18","2025-06-18","2025-08-29","2025-10-23","2025-11-27","2026-01-29"]},{"cod":"4826","esercizio":"PUB DEGUSTERIA S.GIOVANNI","cliente":"ARMANDO MARIO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-13","2023-05-23","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-24","2025-03-21","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"3380","esercizio":"CIRCOLO TENNIS MONTESANO","cliente":"CIRCOLO TENNIS MONTESANO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-13","2023-05-11","2023-06-29","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-07","2024-04-16","2024-05-30","2024-12-04","2025-01-24","2025-03-21","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"4561","esercizio":"AGRIT.LA TORRETTA","cliente":"DI MAIO MASSIMO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-04-21","2023-05-11","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-07","2024-04-16","2024-05-30","2024-12-04","2025-01-24","2025-03-21","2025-04-17","2025-06-18","2025-08-28","2025-10-23","2025-11-27","2026-01-29"]},{"cod":"2285","esercizio":"TRATTORIA GIUSEPPINA","cliente":"GIUSEPPINA BOFFA","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-27","2023-05-11","2023-06-29","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-24","2025-03-21","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"2879","esercizio":"PIZZERIA DA MIMMO","cliente":"MITIDIERI DOMENICO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-27","2023-05-23","2023-07-06","2023-09-21","2023-10-26","2024-01-04","2024-02-05","2024-03-14","2024-04-16","2024-05-30","2024-12-04","2025-01-23","2025-03-21","2025-04-18","2025-06-18","2025-09-16","2025-10-23","2025-12-18","2026-01-29"]},{"cod":"5453","esercizio":"CIRCOLO CULT. SAN CARLO","cliente":"CIRCOLO CULTURALE SAN CARLO","posizione":"120","localita":"MONTESANO SM","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-04-13","2023-07-06","chiuso","2024-03-07","2024-04-16","2024-06-06","chiuso","2025-03-21","2025-04-17","2025-06-18","spento"]},{"cod":"3499","esercizio":"PIZZERIA BUONA SERA","cliente":"PIZZERIA BUONA SERA SAS","posizione":"","localita":"PADULA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-08","2023-05-19","2023-06-24","2023-09-02","2023-11-04","2024-01-16","2024-02-08","2024-04-05","2024-04-05","2024-11-29","2025-01-22","2025-03-14","2025-04-24","2025-06-19","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5082","esercizio":"BAR TERRAZZA TRENTINARA","cliente":"DE ROSA PINA","posizione":"","localita":"TRENTINARA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-24","2023-05-19","2023-07-03","2023-09-02","2023-11-04","2024-01-16","2024-02-29","2024-04-05","2024-06-19","2024-11-26","2025-01-22","2025-03-14","2025-04-24","2025-06-19","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5085","esercizio":"DA ROCCO","cliente":"PASSARELLI ROCCO","posizione":"","localita":"PALOMONTE","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-08","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-15","2024-02-08","2024-04-05","2024-06-17","2024-12-05","2025-01-22","2025-03-14","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"4476","esercizio":"PIZZERIA EL PASO","cliente":"CONFORTI CIRO","posizione":"","localita":"PALOMONTE","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-08","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-15","2024-02-08","2024-04-05","2024-06-17","2024-12-05","2025-01-22","2025-03-14","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5088","esercizio":"PIZZERIA SICULA","cliente":"CAROTENUTO ANNA","posizione":"","localita":"PALOMONTE","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-08","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-15","2024-02-08","2024-04-05","2024-06-17","2024-12-05","2025-01-22","2025-03-14","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"3494","esercizio":"PIZZERIA BELVEDERE","cliente":"LAURINO CARLO","posizione":"50","localita":"PETINA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-24","2023-05-11","2023-06-29","2023-09-29","2023-11-04","2024-01-16","2024-02-08","2024-04-11","2024-04-11","2024-11-26","2025-01-22","2025-03-13","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"4462","esercizio":"PIZZERIA DA LUIGI","cliente":"CASTALDO LUIGI","posizione":"50","localita":"PETINA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-24","2023-05-11","2023-06-29","2023-09-29","2023-11-04","2024-01-16","2024-02-08","2024-04-11","2024-06-06","2024-11-26","2025-01-22","2025-03-13","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"3337","esercizio":"LA PERGOLA DA CIRO","cliente":"STANCO CIRO","posizione":"70","localita":"PICERNO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-06","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-13","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"2967","esercizio":"SANTA CHIARA","cliente":"SANTOMASSIMO GIUSEPPE","posizione":"70","localita":"PICERNO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-06","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-13","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5523","esercizio":"DEHOR DA NICOLA","cliente":"VENERUSO NICOLA","posizione":"","localita":"PISCIOTTA","gg_chiusura":"","proprieta":"casillo","vie":"","note":"STAGIONALE","interventi":["2023-06-26","2023-09-01","spento","2024-05-27","2024-06-28","spento","stagionale","2025-05-28","2025-07-21","spento"]},{"cod":"5096","esercizio":"PIZZERIA DI GENNARO","cliente":"DI GENNARO ERNESTO","posizione":"","localita":"POLICASTRO","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-28","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"2439","esercizio":"PIZZERIA JOLLY","cliente":"GIORDANO CARMELA","posizione":"","localita":"POLICASTRO","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-28","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"3498","esercizio":"LA TERRAZZA","cliente":"TORTORELLA FELICE","posizione":"","localita":"POLICASTRO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-28","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"3500","esercizio":"PIZZERIA BAR LA ROTONDA","cliente":"TORTORELLA FELICE","posizione":"","localita":"POLICASTRO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-28","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"2992","esercizio":"PIZZERIA AL CILENTANO","cliente":"PIZZERIA AL CILENTANO SAS","posizione":"","localita":"POLICASTRO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-28","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"5481","esercizio":"AGRIT.CASA VACCARO","cliente":"VACCARO ROSARIO","posizione":"","localita":"POLLA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-24","2023-05-19","2023-07-06","2023-09-22","2023-11-04","2024-01-16","2024-02-29","2024-04-09","2024-04-09","2024-12-07","2025-01-23","2025-03-14","2025-04-24","2025-06-19","2025-08-20","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"5042","esercizio":"RISTORANTE PALAZZO","cliente":"PALACE POLLA SRLS","posizione":"","localita":"POLLA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-24","2023-05-19","2023-07-06","2023-09-22","2023-11-04","2024-01-16","2024-02-29","2024-04-09","2024-06-06","2024-12-07","2025-01-23","2025-03-14","2025-04-24","2025-06-19","2025-08-20","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"4561","esercizio":"AGRIT.COSTA DEGLI INFRESCHI","cliente":"ALFANO GENNARO","posizione":"","localita":"SAN GIOVANNI A PIRO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-05-25","2023-07-03","2023-09-12","chiuso","spento","2024-05-24","2024-07-03","spento","stagionale","2025-05-12","2025-07-09","spento"]},{"cod":"3335","esercizio":"TRATTORIA ROSA DEI VENTI","cliente":"MOTTOLA GIUSEPPE","posizione":"","localita":"ROCCAGLORIOSA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-11","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-05-16","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"2380","esercizio":"RISTORANTE RIVIERA","cliente":"ESPOSITO SALVATORE","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-02","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-04-09","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"2994","esercizio":"CIRCOLO PENSIONATI SALA","cliente":"CIRCOLO PENSIONATI SALA","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-02","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"3499","esercizio":"LA MELA DI GUGLIELMO","cliente":"GUGLIELMO PASQUALE","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-02","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"5089","esercizio":"PUB IL CANTUCCIO","cliente":"PADULA MARIO","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"casillo","vie":"2","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-02","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"3287","esercizio":"CIRCOLO UNIONE","cliente":"CIRCOLO UNIONE SALA","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-02","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"5505","esercizio":"PIZZERIA CIAK","cliente":"CORRERA NUNZIA","posizione":"","localita":"SALA CONSILINA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-05","2023-05-19","2023-06-27","2023-09-22","2023-10-31","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-25","2025-06-12","2025-08-21","2025-10-09","2025-12-18","2026-01-22"]},{"cod":"4688","esercizio":"AGRIT.MASSERIA VETERE","cliente":"VETRANO GIUSEPPE","posizione":"","localita":"SAN GIACOMO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-04-11","2023-05-12","2023-06-30","2023-09-28","chiuso","2024-04-19","2024-06-14","spento","stagionale","2025-04-25","2025-06-26","spento"]},{"cod":"5485","esercizio":"AGRIT.DON NICOLA","cliente":"CACCIATORE NICOLA","posizione":"","localita":"SAN GREGORIO MAGNO","gg_chiusura":"","proprieta":"casillo","vie":"3","note":"STAGIONALE","interventi":["2023-05-04","2023-07-03","2023-09-12","chiuso","chiuso","2024-06-11","spento","stagionale","2025-05-14","2025-07-16","spento"]},{"cod":"3428","esercizio":"IL CAVALLINO","cliente":"SPINELLI CARMELA","posizione":"","localita":"SAN RUFO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-29","2023-11-20","2024-01-19","2024-03-08","2024-04-19","2024-06-14","2024-12-10","2025-01-30","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-21"]},{"cod":"5050","esercizio":"AGRIT. SAN GIULIANO","cliente":"BORRELLI PINA","posizione":"","localita":"SAPRI","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-03-31","2023-05-12","2023-06-27","2023-09-28","chiuso","2024-04-19","2024-06-14","spento","stagionale","2025-04-25","2025-06-20","spento"]},{"cod":"2869","esercizio":"LA BELLA NAPOLI","cliente":"CIULLO LUIGI","posizione":"","localita":"SAPRI","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-03-31","2023-05-12","2023-06-27","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-14","2024-12-10","2025-01-30","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-22"]},{"cod":"3327","esercizio":"LA SORGENTE","cliente":"ROCCO GIOVANNI","posizione":"","localita":"SASSANO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-07","2025-01-23","2025-03-14","2025-04-24","2025-06-19","2025-08-28","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"2165","esercizio":"AGRIT.LA PERGOLA","cliente":"LETTIERI GENNARO","posizione":"","localita":"SASSANO","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-09","2024-06-06","2024-12-07","2025-01-23","2025-03-14","2025-04-24","2025-06-19","2025-08-28","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5063","esercizio":"AGRIT. BORGO ANTICO","cliente":"AVERSANO MARIANNA","posizione":"70","localita":"SAVOIA DI LUCANIA","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-04-07","2023-05-19","2023-06-29","2023-09-02","2023-10-28","chiuso","2024-02-08","2024-04-05","2024-05-30","chiuso","2024-12-12","2025-01-24","2025-03-21","2025-04-18","2025-06-12","2025-08-14","2025-09-18","2025-11-27","2026-01-30"]},{"cod":"4843","esercizio":"PIZZERIA MARINELLA","cliente":"CHIERCHIA GIOVANNI","posizione":"","localita":"SCARIO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","chiuso","2024-04-19","2024-06-14","spento","stagionale","2025-04-25","2025-06-26","spento"]},{"cod":"5601","esercizio":"CAFFE' PIAZZA","cliente":"CAFFE' PIAZZA SRL","posizione":"","localita":"SICIGNANO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-08","2023-05-11","2023-07-03","2023-09-29","2023-10-20","2024-01-16","2024-02-29","2024-04-11","2024-06-13","2024-11-29","2025-01-22","2025-03-13","2025-04-23","2025-06-18","2025-09-10","2025-10-09","2025-12-11","2026-01-23"]},{"cod":"2380","esercizio":"RISTORANTE DON SALVATORE","cliente":"FORTUNATO RAFFAELLA","posizione":"","localita":"TEGGIANO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"3307","esercizio":"LOCANDA TEGGIANO","cliente":"IANNONE GIUSEPPINA","posizione":"","localita":"TEGGIANO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"4836","esercizio":"PIZZERIA MERIDIONALE","cliente":"PIZZERIA MERIDIONALE SAS","posizione":"","localita":"TEGGIANO","gg_chiusura":"lunedi","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-03","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-06","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"2878","esercizio":"RISTORANTE ORTO DI SAN CONO","cliente":"GRIECI ANGELA","posizione":"70","localita":"TITO","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-04-07","2023-05-19","2023-07-06","2023-09-02","2023-10-28","2024-01-12","2024-02-08","2024-04-05","2024-06-13","2024-12-05","2025-01-24","2025-03-20","2025-04-24","2025-06-13","2025-08-21","2025-10-09","2025-12-11","2026-01-22"]},{"cod":"5507","esercizio":"TRATTORIA DA FELICE","cliente":"LA BELLA VITA SRL","posizione":"","localita":"VIBONATI","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","2023-11-10","2024-01-18","2024-03-01","2024-04-19","2024-06-14","2024-12-10","2025-01-24","2025-03-21","2025-04-25","2025-06-26","2025-08-20","2025-10-09","2025-11-27","2026-01-30"]},{"cod":"5065","esercizio":"VILLAMMARE BEACH","cliente":"FRANCO ERNESTO","posizione":"","localita":"VILLAMMARE","gg_chiusura":"","proprieta":"casillo","vie":"4","note":"STAGIONALE","interventi":["2023-03-31","2023-05-12","2023-06-30","2023-09-28","chiuso","2024-04-19","2024-06-14","spento","stagionale","2025-04-25","2025-06-26","spento"]}];
+
+let currentRole = localStorage.getItem(ROLE_KEY) || 'tecnico';
+let activeTab = 'impianti';
+let selectedIdx = null;
+
+function loadData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  return JSON.parse(JSON.stringify(RAW_DATA));
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let DB = loadData();
+
+function isDate(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function getLastDate(rec) {
+  const dates = rec.interventi.filter(isDate);
+  return dates.length ? dates[dates.length - 1] : null;
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / 86400000);
+}
+
+function isInactive(rec) {
+  const last = rec.interventi[rec.interventi.length - 1];
+  if (!last) return true;
+  const inactive = ['smontato','smontato.','da smontare','da smont','spento','stagionale','chiuso','smontata'];
+  return inactive.includes(String(last).toLowerCase().trim());
+}
+
+function statusOf(rec) {
+  if (isInactive(rec)) return 'inactive';
+  const d = daysSince(getLastDate(rec));
+  if (d === null) return 'inactive';
+  if (d > 90) return 'danger';
+  if (d > 45) return 'warn';
+  return 'ok';
+}
+
+function fmtDate(s) {
+  if (!s) return '–';
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function propClass(p) {
+  const l = (p||'').toLowerCase();
+  if (l.includes('pascucci') || l.includes('pasucci')) return 'prop-pascucci';
+  if (l.includes('heineken')) return 'prop-heineken';
+  if (l.includes('cliente') || l.includes('propriet')) return 'prop-cliente';
+  return 'prop-casillo';
+}
+
+function toggleRole() {
+  currentRole = currentRole === 'tecnico' ? 'agente' : 'tecnico';
+  localStorage.setItem(ROLE_KEY, currentRole);
+  document.getElementById('roleBtn').textContent = currentRole === 'tecnico' ? 'Tecnico' : 'Agente';
+  renderAll();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['impianti','scadenze','dashboard'][i] === tab);
+  });
+  document.getElementById('tabImpianti').style.display = tab === 'impianti' ? '' : 'none';
+  document.getElementById('tabScadenze').style.display = tab === 'scadenze' ? '' : 'none';
+  document.getElementById('tabDashboard').style.display = tab === 'dashboard' ? '' : 'none';
+  document.getElementById('filtersRow').style.display = tab === 'dashboard' ? 'none' : '';
+  document.getElementById('statsBar').style.display = tab === 'dashboard' ? 'none' : '';
+  if (tab === 'scadenze') renderScadenze();
+  if (tab === 'dashboard') renderDashboard();
+}
+
+let showSmontati = false;
+
+function toggleSmontati() {
+  showSmontati = !showSmontati;
+  const btn = document.getElementById('btnToggleSmontati');
+  btn.textContent = showSmontati ? 'Nascondi smontati' : 'Mostra smontati';
+  btn.style.background = showSmontati ? 'var(--gray-border)' : 'var(--gray-bg)';
+  btn.style.fontWeight = showSmontati ? '600' : '400';
+  renderTable();
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const loc = document.getElementById('filterLoc').value;
+  const prop = document.getElementById('filterProp').value;
+  const status = document.getElementById('filterStatus').value;
+  return DB.filter(r => {
+    const s = statusOf(r);
+    if (q && !`${r.esercizio} ${r.cliente} ${r.localita} ${r.cod}`.toLowerCase().includes(q)) return false;
+    if (loc && r.localita.toUpperCase().trim() !== loc) return false;
+    if (prop && !r.proprieta.toLowerCase().includes(prop)) return false;
+    if (status === 'inactive') { return s === 'inactive'; }
+    if (status === 'ok') return s === 'ok';
+    if (status === 'warn') return s === 'warn';
+    if (status === 'danger') return s === 'danger';
+    if (!status) {
+      if (s === 'inactive' && !showSmontati) return false;
+    }
+    return true;
+  });
+}
+
+function renderTable() {
+  const items = getFiltered();
+  const body = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+
+  let ok=0, warn=0, danger=0, total=0;
+  DB.forEach(r => {
+    const s = statusOf(r);
+    if (s !== 'inactive') {
+      total++;
+      if (s === 'ok') ok++;
+      else if (s === 'warn') warn++;
+      else danger++;
+    }
+  });
+  document.getElementById('statTotal').textContent = DB.filter(r => statusOf(r) !== 'inactive').length;
+  document.getElementById('statOk').textContent = ok;
+  document.getElementById('statWarn').textContent = warn;
+  document.getElementById('statDanger').textContent = danger;
+
+  if (!items.length) {
+    body.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  body.innerHTML = items.map((r, i) => {
+    const s = statusOf(r);
+    const lastDate = getLastDate(r);
+    const days = daysSince(lastDate);
+    const rowClass = s === 'danger' ? 'row-danger' : s === 'warn' ? 'row-warn' : s === 'inactive' ? 'row-inactive' : '';
+    const lastEntry = r.interventi.length ? r.interventi[r.interventi.length-1] : null;
+
+    let statusBadge;
+    if (s === 'inactive') {
+      const lastStr = lastEntry ? String(lastEntry).toLowerCase() : '';
+      statusBadge = `<span class="badge badge-gray">${lastStr || 'inattivo'}</span>`;
+    } else if (s === 'ok') {
+      statusBadge = `<span class="badge badge-ok">OK – ${days}gg</span>`;
+    } else if (s === 'warn') {
+      statusBadge = `<span class="badge badge-warn">${days}gg fa</span>`;
+    } else {
+      statusBadge = `<span class="badge badge-danger">SCADUTO – ${days}gg</span>`;
+    }
+
+    const actualIdx = DB.indexOf(r);
+    const canEdit = currentRole === 'tecnico';
+    return `<tr class="${rowClass}" onclick="openDetail(${actualIdx})" style="cursor:pointer">
+      <td><strong style="font-size:13px">${r.cod}</strong></td>
+      <td>
+        <div style="font-weight:500">${r.esercizio}</div>
+        <div style="font-size:11px;color:var(--gray-text);margin-top:2px" class="show-mobile-only">${r.localita}</div>
+      </td>
+      <td class="hide-mobile" style="color:var(--gray-text);font-size:12px">${r.cliente}</td>
+      <td class="hide-mobile" style="font-size:12px">${r.localita}</td>
+      <td class="hide-mobile">${r.vie ? `<span class="tag-vie">${r.vie}</span>` : '–'}</td>
+      <td class="hide-mobile"><span class="badge ${propClass(r.proprieta)}">${r.proprieta||'–'}</span></td>
+      <td style="font-size:12px;white-space:nowrap">${lastDate ? fmtDate(lastDate) : (lastEntry || '–')}</td>
+      <td>${statusBadge}</td>
+      <td onclick="event.stopPropagation()">
+        ${canEdit ? `<button class="btn-log" onclick="openLog(${actualIdx})">Intervento</button>` : `<button class="btn-detail" onclick="openDetail(${actualIdx})">Dettaglio</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderScadenze() {
+  const scaduti = [], attenz = [], oki = [];
+  DB.forEach((r, i) => {
+    const s = statusOf(r);
+    if (s === 'inactive') return;
+    const lastDate = getLastDate(r);
+    const days = daysSince(lastDate);
+    const row = `<tr onclick="openDetail(${i})"><td><strong>${r.cod}</strong></td><td>${r.esercizio}</td><td class="hide-mobile">${r.localita}</td><td>${fmtDate(lastDate)}</td><td><strong>${days}gg</strong></td><td onclick="event.stopPropagation()"><button class="btn-log" onclick="openLog(${i})">Intervento</button></td></tr>`;
+    if (s === 'danger') scaduti.push(row);
+    else if (s === 'warn') attenz.push(row);
+    else oki.push(row);
+  });
+  document.getElementById('tbScaduti').innerHTML = scaduti.join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-text)">Nessuno</td></tr>';
+  document.getElementById('tbAttenz').innerHTML = attenz.join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-text)">Nessuno</td></tr>';
+  document.getElementById('tbOk').innerHTML = oki.join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-text)">Nessuno</td></tr>';
+}
+
+function renderDashboard() {
+  const byLoc = {};
+  let totalActive=0, totalInactive=0, totalDanger=0, totalWarn=0, totalOk=0;
+  DB.forEach(r => {
+    const s = statusOf(r);
+    const loc = r.localita.trim();
+    if (!byLoc[loc]) byLoc[loc] = {ok:0,warn:0,danger:0,inactive:0};
+    byLoc[loc][s]++;
+    if (s==='inactive') totalInactive++;
+    else { totalActive++; if(s==='ok')totalOk++; else if(s==='warn')totalWarn++; else totalDanger++; }
+  });
+
+  const sortedLocs = Object.entries(byLoc).sort((a,b)=>b[1].danger-a[1].danger || b[1].warn-a[1].warn);
+
+  const byProp = {};
+  DB.forEach(r => {
+    const p = r.proprieta.toLowerCase().trim() || 'altro';
+    const k = p.includes('pascucci')||p.includes('pasucci') ? 'Pascucci' : p.includes('heineken') ? 'Heineken' : p.includes('cliente')||p.includes('propriet') ? 'Cliente' : p ? 'Casillo' : 'Altro';
+    byProp[k] = (byProp[k]||0)+1;
+  });
+
+  document.getElementById('dashGrid').innerHTML = `
+    <div class="dash-card">
+      <div class="dash-card-title">Riepilogo stato</div>
+      <div class="dash-row"><span>Totale impianti</span><span class="dash-num">${DB.length}</span></div>
+      <div class="dash-row"><span>Attivi</span><span class="dash-num" style="color:var(--teal)">${totalActive}</span></div>
+      <div class="dash-row"><span>Inattivi/Smontati</span><span class="dash-num" style="color:var(--gray-text)">${totalInactive}</span></div>
+      <div class="dash-row"><span>Regolari (&lt;45gg)</span><span class="dash-num" style="color:var(--green)">${totalOk}</span></div>
+      <div class="dash-row"><span>Attenzione (45-90gg)</span><span class="dash-num" style="color:var(--amber)">${totalWarn}</span></div>
+      <div class="dash-row"><span>Scaduti (&gt;90gg)</span><span class="dash-num" style="color:var(--red)">${totalDanger}</span></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-title">Per proprietà</div>
+      ${Object.entries(byProp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="dash-row"><span>${k}</span><span class="dash-num">${v}</span></div>`).join('')}
+    </div>
+    <div class="dash-card" style="grid-column: 1/-1">
+      <div class="dash-card-title">Stato per località (critici prima)</div>
+      <div style="overflow-x:auto"><table style="width:100%;font-size:13px">
+        <thead><tr>
+          <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--gray-text)">Località</th>
+          <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--green)">OK</th>
+          <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--amber)">Attenzione</th>
+          <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--red)">Scaduti</th>
+          <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--gray-text)">Inattivi</th>
+        </tr></thead>
+        <tbody>${sortedLocs.map(([loc,s])=>`<tr>
+          <td style="padding:6px 8px">${loc}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--green);font-weight:600">${s.ok||''}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--amber);font-weight:600">${s.warn||''}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--red);font-weight:600">${s.danger||''}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--gray-text)">${s.inactive||''}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+
+function openDetail(idx) {
+  selectedIdx = idx;
+  const r = DB[idx];
+  document.getElementById('detailTitle').textContent = r.esercizio;
+  document.getElementById('detailSub').textContent = `${r.cod} · ${r.cliente} · ${r.localita}`;
+  document.getElementById('detailLogBtn').style.display = currentRole === 'tecnico' ? '' : 'none';
+
+  const s = statusOf(r);
+  const lastDate = getLastDate(r);
+  const days = daysSince(lastDate);
+
+  let statusHTML = '';
+  if (s === 'ok') statusHTML = `<span class="badge badge-ok">Regolare – ${days} giorni fa</span>`;
+  else if (s === 'warn') statusHTML = `<span class="badge badge-warn">Attenzione – ${days} giorni fa</span>`;
+  else if (s === 'danger') statusHTML = `<span class="badge badge-danger">SCADUTO – ${days} giorni fa</span>`;
+  else statusHTML = `<span class="badge badge-gray">Inattivo</span>`;
+
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      ${statusHTML}
+      ${r.vie ? `<span class="badge badge-info">${r.vie} vie birra</span>` : ''}
+      ${r.proprieta ? `<span class="badge ${propClass(r.proprieta)}">${r.proprieta}</span>` : ''}
+    </div>
+    <table style="width:100%;font-size:13px;margin-bottom:16px">
+      <tr><td style="color:var(--gray-text);padding:4px 0;width:40%">Posizione</td><td style="padding:4px 0">${r.posizione ? r.posizione+'km' : '–'}</td></tr>
+      <tr><td style="color:var(--gray-text);padding:4px 0">Giorno chiusura</td><td style="padding:4px 0">${r.gg_chiusura||'–'}</td></tr>
+      <tr><td style="color:var(--gray-text);padding:4px 0">Ultimo intervento</td><td style="padding:4px 0;font-weight:600">${fmtDate(lastDate)}</td></tr>
+      ${r.note ? `<tr><td style="color:var(--gray-text);padding:4px 0">Note</td><td style="padding:4px 0">${r.note}</td></tr>` : ''}
+    </table>
+    <div style="font-size:12px;font-weight:600;color:var(--gray-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Storico interventi (${r.interventi.length})</div>
+    <ul class="history-list">
+      ${[...r.interventi].reverse().map((entry, ri) => {
+        const origIdx = r.interventi.length - 1 - ri;
+        const isD = isDate(entry);
+        return `<li class="history-item">
+          <div class="history-dot ${!isD?'special':''}"></div>
+          <div class="history-date">${isD ? fmtDate(entry) : ''}</div>
+          <div class="history-note">${isD ? '' : entry}</div>
+          ${currentRole==='tecnico' ? `<button class="history-del" onclick="deleteIntervento(${idx},${origIdx})">✕</button>` : ''}
+        </li>`;
+      }).join('')}
+    </ul>
+    ${currentRole === 'tecnico' ? `
+    <div style="margin-top:16px;border-top:1px solid var(--gray-border);padding-top:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--gray-text);margin-bottom:8px">MODIFICA IMPIANTO</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div class="field-label">Vie birra</div><input type="text" class="field-input" id="editVie" value="${r.vie||''}" style="height:32px;font-size:12px"></div>
+        <div><div class="field-label">Gg chiusura</div><input type="text" class="field-input" id="editGg" value="${r.gg_chiusura||''}" style="height:32px;font-size:12px"></div>
+      </div>
+      <div style="margin-bottom:8px"><div class="field-label">Note</div><textarea class="field-textarea" id="editNote" style="min-height:56px;font-size:12px">${r.note||''}</textarea></div>
+      <button class="btn-save" style="font-size:12px;padding:6px 14px" onclick="saveEdit(${idx})">Salva modifiche</button>
+    </div>` : ''}
+  `;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function saveEdit(idx) {
+  DB[idx].vie = document.getElementById('editVie').value;
+  DB[idx].gg_chiusura = document.getElementById('editGg').value;
+  DB[idx].note = document.getElementById('editNote').value;
+  saveData(DB);
+  showToast('Modifiche salvate');
+  renderAll();
+}
+
+function deleteIntervento(idx, entryIdx) {
+  if (!confirm('Eliminare questo intervento?')) return;
+  DB[idx].interventi.splice(entryIdx, 1);
+  saveData(DB);
+  openDetail(idx);
+  renderAll();
+}
+
+function logFromDetail() {
+  closeModal('detailModal');
+  openLog(selectedIdx);
+}
+
+function openLog(idx) {
+  selectedIdx = idx;
+  const r = DB[idx];
+  document.getElementById('logTitle').textContent = 'Registra intervento';
+  document.getElementById('logSub').textContent = `${r.esercizio} · ${r.localita}`;
+  document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('logNote').value = '';
+  document.getElementById('logModal').classList.add('open');
+}
+
+function saveLog() {
+  const date = document.getElementById('logDate').value;
+  const note = document.getElementById('logNote').value.trim();
+  if (!date) { alert('Inserisci la data'); return; }
+  DB[selectedIdx].interventi.push(date);
+  if (note) DB[selectedIdx].interventi.push(note);
+  saveData(DB);
+  closeModal('logModal');
+  showToast('Intervento registrato!');
+  renderAll();
+}
+
+function openAddModal() {
+  if (currentRole !== 'tecnico') { alert('Solo il tecnico può aggiungere impianti.'); return; }
+  document.getElementById('addModal').classList.add('open');
+}
+
+function saveNew() {
+  const cod = document.getElementById('addCod').value.trim();
+  const es = document.getElementById('addEsercizio').value.trim();
+  if (!cod || !es) { alert('Inserisci almeno codice ed esercizio'); return; }
+  const rec = {
+    cod, esercizio: es,
+    cliente: document.getElementById('addCliente').value.trim(),
+    posizione: document.getElementById('addPosizione').value.trim(),
+    localita: document.getElementById('addLocalita').value.trim().toUpperCase(),
+    gg_chiusura: document.getElementById('addGg').value.trim(),
+    proprieta: document.getElementById('addProprieta').value,
+    vie: document.getElementById('addVie').value.trim(),
+    note: document.getElementById('addNote').value.trim(),
+    interventi: []
+  };
+  DB.push(rec);
+  saveData(DB);
+  closeModal('addModal');
+  showToast('Impianto aggiunto!');
+  renderAll();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function renderAll() {
+  document.getElementById('roleBtn').textContent = currentRole === 'tecnico' ? 'Tecnico' : 'Agente';
+  populateFilters();
+  renderTable();
+}
+
+function populateFilters() {
+  const locs = [...new Set(DB.map(r=>r.localita.trim().toUpperCase()).filter(Boolean))].sort();
+  const sel = document.getElementById('filterLoc');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Tutte le località</option>' + locs.map(l=>`<option value="${l}" ${l===cur?'selected':''}>${l}</option>`).join('');
+}
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+
+renderAll();
+</script>
+</body>
+</html>
